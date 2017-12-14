@@ -15,7 +15,8 @@ from pssh.pssh2_client import ParallelSSHClient
 from .common import (add_config, add_environment, add_name, add_options, add_override_name,
                      add_pool_size, add_requirements, resolve_options)
 from ..util import (get_config_dict, die, get_config, get_env_config,
-                    get_topology_definition, get_topology_from_file)
+                    get_topology_definition, get_topology_from_file,
+                    print_ssh_output)
 
 
 def _create_or_update_virtualenv(virtualenv_root, virtualenv_name, requirements_paths, hosts=None,
@@ -56,8 +57,10 @@ def _create_or_update_virtualenv(virtualenv_root, virtualenv_name, requirements_
         output = ssh_client.run_command("{} && {} && {}".format(virtualenv_activate, pip_upgrade,
                                                                 pip_requirements_install))
         ssh_client.join(output)
-        ssh_client.run_command("rm {}".format(temp_req))
+        print_ssh_output(output)
+        output = ssh_client.run_command("rm {}".format(temp_req))
         ssh_client.join(output)
+        print_ssh_output(output)
 
 
 def create_or_update_virtualenvs(env_name, topology_name, options, virtualenv_name=None,
@@ -102,7 +105,7 @@ def create_or_update_virtualenvs(env_name, topology_name, options, virtualenv_na
 
     # Setup the fabric env dictionary
     storm_options = resolve_options(options, env_config, topology_class, topology_name)
-    env_dict = get_config_dict(env_name, options, config_file=config_file)
+    env_dict = get_config_dict(env_name, storm_options, config_file=config_file)
 
     # Actually create or update virtualenv on worker nodes
     _create_or_update_virtualenv(env_dict['virtualenv_root'],
